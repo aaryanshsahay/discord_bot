@@ -38,7 +38,13 @@ async def on_message(message):
 		print('!help command used by: {}'.format(message.author))
 
 	########################################LINEAR REGRESSION########################################
-
+	if message.content.startswith('!linreg help'):
+		msg='''
+			enter message
+		'''
+		await message.channel.send(msg)
+		print('!linreg help command used by: {}'.format(message.author)
+		      
 	#Linear Regression X input.
 	if message.content.startswith('!linreg x'):
 		global x
@@ -80,6 +86,7 @@ async def on_message(message):
 		graph[0].figure.savefig(r'images/1234.jpg')
 		graph[0].figure.clf()
 		await message.channel.send(file=discord.File(r'images/1234.jpg'))
+		
 
 
 

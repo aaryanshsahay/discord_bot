@@ -163,7 +163,7 @@ def lin_reg(x,y,z):
         return output
     except:
         error_='something went wrong try again later'
-        return error
+        return error_
 
 def get_graph(x,y,slope,intercept):
 	x1=np.linspace(0,10,100).reshape(100,1)

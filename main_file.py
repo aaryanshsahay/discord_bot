@@ -143,23 +143,27 @@ async def on_message(message):
 
 ############################################# FUNCTIONS ##################################################################
 def lin_reg(x,y,z):
-	reg=LinearRegression()
-	reg=reg.fit(x,y)
-	predict=reg.predict(z)
+    try:
+        reg=LinearRegression()
+        reg=reg.fit(x,y)
+        predict=reg.predict(z)
 
-	slope=reg.coef_
-	intercept=reg.intercept_
+        slope=reg.coef_
+        intercept=reg.intercept_
 
-	score=reg.score(x,y)
+        score=reg.score(x,y)
 
-	output={
-	'Score':score,
-	'Prediction':predict,
-	'Slope':slope,
-	'Intercept':intercept
-	}
+        output={
+        'Score':score,
+        'Prediction':predict,
+        'Slope':slope,
+        'Intercept':intercept
+        }
 
-	return output
+        return output
+    except:
+        error_='something went wrong try again later'
+        return error
 
 def get_graph(x,y,slope,intercept):
 	x1=np.linspace(0,10,100).reshape(100,1)

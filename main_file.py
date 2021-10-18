@@ -21,7 +21,7 @@ import urllib.request
 
 
 bot=discord.Client()
-bot_key='ODM0NzQ2MzkzODY3NTgzNDg5.YIFYKQ.DqBbwzqMxcLLJZfXZ6GJgehQI4Y'
+bot_key=''
 
 ############################################# BOT EVENTS ###################################################################
 

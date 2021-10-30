@@ -1,4 +1,4 @@
-############################################# LIBRARIES ####################################################################
+######################################## LIBRARIES ##################################################
 
 import discord
 import time
@@ -8,162 +8,262 @@ import numpy as np
 import matplotlib.pyplot as plt
 # Linear Regression
 from sklearn.linear_model import LinearRegression
-# from sklearn.feature_extraction import CountVectorizer
-# from sklearn.metrics.pairwise import cosine_similarity
 # Neural Networks
 from keras.models import model_from_json
 from keras import models
 import cv2
 #Movie Recommendation
-
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+# Personality
+from sklearn.feature_extraction.text import TfidfTransformer
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+import nltk
+#nltk.download('stopwords')
+#import nltk
+#nltk.download('wordnet')
+import gzip
 #Misc
 import urllib.request
+import pickle
+import re
+import joblib
 
 
 bot=discord.Client()
-bot_key=''
+bot_key='ODM0NzQ2MzkzODY3NTgzNDg5.YIFYKQ.DqBbwzqMxcLLJZfXZ6GJgehQI4Y'
 
-############################################# BOT EVENTS ###################################################################
+######################################################################################################
+######################################## BOT EVENTS ##################################################
+######################################################################################################
 
 @bot.event
 async def on_ready():
-	print('Logged in as {0.user}'.format(bot))
+	print('Logged in as {}'.format(bot.user))
 
 @bot.event
 async def on_message(message):
 
-	# Hi/Hello/Hey message
-	if message.content.startswith('!hello') or message.content.startswith('!hi') or message.content.startswith('!hey'):
-		msg='Hello there {}, Glad to meet you! Use !help to get started quickly.'.format(message.author)
-		await message.channel.send(msg)
-		# Logging
-		print('Gretting message sent to {}'.format(message.author))
+	# Ignore messages sent by bot
+	if message.author==bot.user:
+		return
 
-	# Main Help Message
+	# Greeting 
+	if message.content.startswith('!hello') or message.content.startswith('!hi') or message.content.startswith('!hey'):
+		embed=discord.Embed(description=greeting_message.format(message.author))
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
+
+	# Help command
 	if message.content.startswith('!help'):
-		msg=help_main
-		await message.channel.send(msg)
+		embed=discord.Embed(title='Help Center',description=help_main)
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
 
 	# Linear Regression Command
 	if message.content.startswith('!linreg x'):
-		global x
-		x=message.content.split('x')
-		x=x[1].strip()
-		x=x.split(',')
-		x=[int(i) for i in x]
-		x=np.asarray(x)
-		x=x.reshape(x.size,1)
-		msg='X Input taken Successfully!'
-		await message.channel.send(msg)
+		try:
+			global x
+			x=message.content.split('x')
+			x=x[1].strip()
+			x=x.split(',')
+			x=[int(i) for i in x]
+			x=np.asarray(x)
+			x=x.reshape(x.size,1)
+			embed=discord.Embed(description='X Input taken Successfully!')
+			embed.color=0x0a528c
+			await message.channel.send(embed=embed)
+		except:
+			embed=discord.Embed(title='Error',description='The model only takes in integers! Try again!')
+			embed.color=0x0a528c
+			await message.channel.send(embed=embed)
+
 
 	if message.content.startswith('!linreg y'):
-		global y
-		y=message.content.split('y')
-		y=y[1].strip()
-		y=y.split(',')
-		y=[int(i) for i in y]
-		y=np.asarray(y)
-		y=y.reshape(y.size,1)
-		msg='Y Input taken Successfully!'
-		await message.channel.send(msg)
-
+		try:
+			global y
+			y=message.content.split('y')
+			y=y[1].strip()
+			y=y.split(',')
+			y=[int(i) for i in y]
+			y=np.asarray(y)
+			y=y.reshape(y.size,1)
+			embed=discord.Embed(description='Y Input taken Successfully!')
+			embed.color=0x0a528c
+			await message.channel.send(embed=embed)
+		except:
+			embed=discord.Embed(title='Error',description='The model can only take integers, try again!')
+			embed.color=0x0a528c
+			await message.channel.send(embed=embed)
+	
 	if message.content.startswith('!linreg predict'):
 		z=message.content.split('predict')
 		z=int(z[1])
 		z=np.asarray(z)
 		z=z.reshape(z.size,1)
-		await message.channel.send('Prediction value taken successfully')
+
+		embed=discord.Embed(description='Prediction value taken successfully! Calculating now...')
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
 		
 		#Calling Linear Regression Function.
 		linear_regression=lin_reg(x,y,z)
 		score,prediction,slope,intercept=linear_regression['Score'],linear_regression['Prediction'],linear_regression['Slope'],linear_regression['Intercept']
 		preds='Prediction is : {}'.format(prediction[0][0])
-		await message.channel.send(preds)
+		
 		
 		#Plotting Graph.
 		graph=get_graph(x,y,slope,intercept)
 		graph[0].figure.savefig(r'Images/1234.jpg')
 		graph[0].figure.clf()
-		await message.channel.send(file=discord.File(r'Images/1234.jpg'))
 
-		await message.channel.send('The score for this model is : {}'.format(score))
+		embed=discord.Embed(title='Linear Regression',description='The linear regression model trained on :')
+		embed.color=0x0a528c
+		embed.add_field(name='X values :',value=x.tolist(),inline=True)
+		embed.add_field(name='Y values :',value=y.tolist(),inline=True)
+		embed.add_field(name=f'Prediction On {z.tolist()[0][0]}',value=prediction[0][0],inline=False)
+		file = discord.File("Images/1234.jpg", filename="image1.jpg")
+		embed.set_image(url="attachment://image1.jpg")
+		await message.channel.send(file=file,embed=embed)
 
 	# Linear Regression Help Command
 	if message.content.startswith('!linreg help'):
-		msg=help_linreg
-		await message.channel.send(msg)
+		embed=discord.Embed(title='Linear Regression',description=help_linreg)
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
 
-	# Dog Cat Classsifier Command
-	if message.content.startswith('!dogcat'):
+	# Cat Dog Classification
+	if message.content.startswith('!dogcat p'):
+		try:
+			query=message.content.split('!dogcat p ')
+			query=query[1]
+			urllib.request.urlretrieve(query,'dogcat.jpg')
+
+			model=load_model(json_dogcat,weights_dogcat)
+
+			pred=dogcat(model,'dogcat.jpg')
+
+			embed=discord.Embed(title='Dog Cat Classification',description='The model predicts the image to be a {}'.format(pred))
 		
-		query=message.content.split('!dogcat')
-		query=query[1]
-		urllib.request.urlretrieve(query,'dogcat.jpg')
+			file = discord.File("dogcat.jpg", filename="image2.jpg")
+			embed.set_image(url="attachment://image2.jpg")
+			embed.color=0x0a528c
+			await message.channel.send(file=file,embed=embed)
+		except:
+			embed=discord.Embed(title='Error',description='Something went wrong, try a different image!')
+			embed.color=0x0a528c
+			await message.channel.send(embed=embed)
 
-		model=load_model(json_dogcat,weights_dogcat)
-
-		pred=dogcat(model,'dogcat.jpg')
-
-		msg='Wow Its a {}'.format(pred)
-
-		await message.channel.send(msg)
-
-	# Dog Cat Classifier Help Command
+	# Cat Dog Classification Help Command
 	if message.content.startswith('!dogcat help'):
-		msg=help_dogcat
-		await message.channel.send(msg)
+		embed=discord.Embed(title='Dog Cat Classification',description=help_dogcat)
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
 
-	# Equation Solver Command
-	if message.content.startswith('!solve'):
-		pass
+	# Movie recommendation 
+	if message.content.startswith('!recommend m'):
+		try:
+			query=message.content.split('!recommend m ')
+			query=query[1]
+			df=load_data_for_movie_rec(movie_data)['df']
+			cosine_sim=load_data_for_movie_rec(movie_data)['cosine_sim']
 
-	# Equation Solver Help Command
-	if message.content.startswith('!solve help'):
-		msg=help_solve
-		await message.channel.send(msg)
+			res=get_recommendation(df,query,cosine_sim)
+			
+			
+			embed=discord.Embed(title='Movie recommendation' ,description='Here are some movies which are similiar to {}:'.format(query))
+			embed.add_field(name=res['movie1'],value=res['about1'],inline=False)
+			embed.add_field(name=res['movie2'],value=res['about2'],inline=False)
+			embed.add_field(name=res['movie3'],value=res['about3'],inline=False)
+			embed.color=0x0a528c
 
-	# Recommendation command
-	if message.content.startswith('!recommend'):
-		pass
+			await message.channel.send(embed=embed)
+		except:
+			embed=discord.Embed(title='Error',description='Something went wrong, Make sure you are entering the correct spelling! if the error persists, try some other movie!')
+			embed.color=0x0a528c
+			await message.channel.send(embed=embed)
 
-	# Recommendation Help Command
+	# Movie Recommendation Help command
 	if message.content.startswith('!recommend help'):
-		msg=help_recommend
-		await message.channel.send(msg)
+		embed=discord.Embed(title='Movie Recommendation',description=help_movie)
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
 
-	# Personality Command
-	if message.content.startswith('!personality'):
-		pass
+	# Insult Identifier command
+	if message.content.startswith('!insult i'):
+		query=message.content.split('!insult i ')
+		query=query[1]
+		loaded_model=pickle.load(open(insult_classif, 'rb'))
+		get_insult=hs_model(loaded_model,query)
+		embed=discord.Embed(title='Insult Identifier',description=f'Woah that was {get_insult}')
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
+
+	# Insult Identifier Help Command
+	if message.content.startswith('!insult help'):
+		embed=discord.Embed(title='Insult',description=help_insult)
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
 
 
-	# Personality Help Command
+	# Personality Classifier Command
+	if message.content.startswith('!personality p'):
+		try:
+			query=message.content.split('!personality p ')
+			query=query[1]
+			loaded_model=joblib.load(open(personality_model,'rb'))
+		
+
+			print(query)
+			cntizer=CountVectorizer(analyzer='word',max_features=1000,max_df=0.7,min_df=0.1)
+			tfizer=TfidfTransformer()
+
+			personality_type=predict_personality(loaded_model,query,cntizer,tfizer)
+
+			embed=discord.Embed(title='MBTI Personality',description=f'You are most probably a {personality_type}')
+			embed.color=0x0a528c
+			await message.channel.send(embed=embed)
+		except:
+			embed=discord.Embed(title='Error',description='This command is currently offline, the team is working to fix the bug!')
+			embed.color=0x0a528c
+			file = discord.File("Images/error_1.jpg", filename="image3.jpg")
+			embed.set_image(url="attachment://image3.jpg")
+			await message.channel.send(file=file,embed=embed)
+
+	# Personality Classifier Help Command
 	if message.content.startswith('!personality help'):
-		msg=help_personality
-		await message.channel.send(msg)
+		embed=discord.Embed(title='Personaliity Prediction',description=help_personality)
+		embed.color=0x0a528c
+		await message.channel.send(embed=embed)
 
-############################################# FUNCTIONS ##################################################################
+
+
+
+######################################################################################################
+######################################## FUNCTIONS ###################################################
+######################################################################################################
+
 def lin_reg(x,y,z):
-    try:
-        reg=LinearRegression()
-        reg=reg.fit(x,y)
-        predict=reg.predict(z)
+	reg=LinearRegression()
+	reg=reg.fit(x,y)
+	predict=reg.predict(z)
 
-        slope=reg.coef_
-        intercept=reg.intercept_
+	slope=reg.coef_
+	intercept=reg.intercept_
 
-        score=reg.score(x,y)
+	score=reg.score(x,y)
 
-        output={
-        'Score':score,
-        'Prediction':predict,
-        'Slope':slope,
-        'Intercept':intercept
-        }
+	output={
+	'Score':score,
+	'Prediction':predict,
+	'Slope':slope,
+	'Intercept':intercept
+	}
 
-        return output
-    except:
-        error_='something went wrong try again later'
-        return error_
+	return output
 
 def get_graph(x,y,slope,intercept):
 	x1=np.linspace(0,10,100).reshape(100,1)
@@ -172,6 +272,7 @@ def get_graph(x,y,slope,intercept):
 	graph=plt.plot(x1,y1,color='r')
 	
 	return graph
+
 
 def load_model(json_file,weights):
 	json_file=open(json_file,'r')
@@ -193,75 +294,258 @@ def dogcat(model,image):
 	pred=model.predict(final_img)
 
 	if pred==1:
-		res='Cat'
-	else:
 		res='Dog'
+	else:
+		res='Cat'
 
 	return res
 
+def get_index_from_title(df,title):
+	return df[df.title==title]['index'].values[0]
 
-def movie_recommendation():
-    df = pd.read_csv() #add file location#
-    features = ['keywords', 'cast', 'genres', 'director']
-    for feature in features:
-        df[feature] = df[feature].fillna('')
-    df["combined_features"] = df.apply(combined_features, axis =1)  
-    cv = CountVectorizer()
-    count_matrix = cv.fit_transform(df["combined_features"])
-    cosine_sim = cosine_similarity(count_matrix)
-    movie_user_likes = input("Enter your choice of movie:\n")
-    movie_index = get_index_from_title(movie_user_likes)
-    similar_movies = list(enumerate(cosine_sim[int(movie_index)]))
-    sorted_similar_movies = sorted(similar_movies, key=lambda x:x[1], reverse=True)
-    i=0
-    print(f"Recommended Movies to watch if you like \"{movie_user_likes}\":\n")
-    for movie in sorted_similar_movies:
-        print(get_title_from_index(movie[0]))
-        i=i+1
-        if i>3:
-            break
-    
-def combined_features(row):
-    return row['keywords']+" "+row['cast']+" "+row['genres']+" "+row['director']
+def get_title_from_index(df,index):
+	return df[df.index==index]['title'].values[0]
 
-def get_index_from_title(title):
-    return df[df.title == title]["index"].values[0]
+def get_overview_from_index(df,index):
+	return df[df.index==index]['overview'].values[0]
 
-def get_title_from_index(index):
-    return df[df.index == index]["title"].values[0]
+def load_data_for_movie_rec(file_path):
+	df=pd.read_csv(file_path)
+	cv=CountVectorizer()
+	count_matrix=cv.fit_transform(df['combined_features'])
+	cosine_sim=cosine_similarity(count_matrix)
+
+	return {
+		'df':df,
+		'cosine_sim':cosine_sim
+	}
+
+def get_recommendation(df,user_input,cosine_sim):
+	user_input=user_input.replace('[^\w\s]','').lower()
+	movie_index=get_index_from_title(df,user_input)
+	similar_movies=list(enumerate(cosine_sim[int(movie_index)]))
+	sorted_similar_movies=sorted(similar_movies,key=lambda x:x[1],reverse=True)
+
+	movie_name_1=get_title_from_index(df,sorted_similar_movies[1][0])
+	movie_name_2=get_title_from_index(df,sorted_similar_movies[2][0])
+	movie_name_3=get_title_from_index(df,sorted_similar_movies[3][0])
+
+	about_movie_1=get_overview_from_index(df,sorted_similar_movies[1][0])
+	about_movie_2=get_overview_from_index(df,sorted_similar_movies[2][0])
+	about_movie_3=get_overview_from_index(df,sorted_similar_movies[3][0])
+
+	return {
+		'movie1':movie_name_1,
+		'movie2':movie_name_2,
+		'movie3':movie_name_3,
+		'about1':about_movie_1,
+		'about2':about_movie_2,
+		'about3':about_movie_3
+		}
+
+def process_text():
+	return " ".join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])", " ",tweet.lower()).split())
+
+def hs_model(loaded_model,query):
+	inp = pd.Series(query)
+	yhat = ((np.ravel(loaded_model.predict(inp)).tolist()))
+	res=''
+	if yhat[-1] == 1:
+		res='an insult :rage:'
+	else:
+		res='not an insult :smiling_face_with_3_hearts:'
+	return res
+
+b_Pers = {'I':0, 'E':1, 'N':0, 'S':1, 'F':0, 'T':1, 'J':0, 'P':1}
+b_Pers_list = [{0:'I', 1:'E'}, {0:'N', 1:'S'}, {0:'F', 1:'T'}, {0:'J', 1:'P'}]
+
+def translate_back(personality):
+    # transform binary vector to mbti personality
+    s = ""
+    for i, l in enumerate(personality):
+        s += b_Pers_list[i][l]
+    return s
+
+def translate_personality(b_Pers,personality):
+	
+    return [b_Pers[l] for l in personality]
+
+    # transform mbti to binary vector
+
+def pre_process_text(data, remove_stop_words=True, remove_mbti_profiles=True):
+  lemmatiser = WordNetLemmatizer()
+  useless_words = stopwords.words("english")
+  unique_type_list = ['INFJ', 'ENTP', 'INTP', 'INTJ', 'ENTJ', 'ENFJ', 'INFP', 'ENFP',
+       'ISFP', 'ISTP', 'ISFJ', 'ISTJ', 'ESTP', 'ESFP', 'ESTJ', 'ESFJ']
+  unique_type_list = [x.lower() for x in unique_type_list]
+  
+  list_personality = []
+  list_posts = []
+  len_data = len(data)
+  i=0
+  
+  for row in data.iterrows():
+      # check code working 
+      # i+=1
+      # if (i % 500 == 0 or i == 1 or i == len_data):
+      #     print("%s of %s rows" % (i, len_data))
+
+      #Remove and clean comments
+      posts = row[1].posts
+
+      #Remove url links 
+      temp = re.sub('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', ' ', posts)
+
+      #Remove Non-words - keep only words
+      temp = re.sub("[^a-zA-Z]", " ", temp)
+
+      # Remove spaces > 1
+      temp = re.sub(' +', ' ', temp).lower()
+
+      #Remove multiple letter repeating words
+      temp = re.sub(r'([a-z])\1{2,}[\s|\w]*', '', temp)
+
+      #Remove stop words
+      if remove_stop_words:
+          temp = " ".join([lemmatiser.lemmatize(w) for w in temp.split(' ') if w not in useless_words])
+      else:
+          temp = " ".join([lemmatiser.lemmatize(w) for w in temp.split(' ')])
+          
+      #Remove MBTI personality words from posts
+      if remove_mbti_profiles:
+          for t in unique_type_list:
+              temp = temp.replace(t,"")
+
+      # transform mbti to binary vector
+      type_labelized = translate_personality(b_Pers,row[1].type) #or use lab_encoder.transform([row[1].type])[0]
+      list_personality.append(type_labelized)
+      # the cleaned data temp is passed here
+      list_posts.append(temp)
+
+  # returns the result
+  list_posts = np.array(list_posts)
+  list_personality = np.array(list_personality)
+  return list_posts, list_personality
+
+def predict_personality(model,query,cntizer,tfizer):
+	mydata=pd.DataFrame(data={'type':['INFJ'],'posts':[query]})
+
+	query,dummy=pre_process_text(mydata,remove_stop_words=True,remove_mbti_profiles=True)
+	query=cntizer.fit_transform(query)
+	query=tfizer.fit_transform(query).toarray()
+	query=model.predict(query)
+	return translate_back(query)
+
+######################################################################################################
+######################################## FILE PATH ###################################################
+######################################################################################################
+json_dogcat='models/model.json'
+weights_dogcat='models/catdog.h5'
+
+movie_data='data/dataset.csv'
 
 
+insult_classif='models/HS.pkl'
 
-############################################# FILE NAMES  ################################################################
+personality_model='models/personality_model_.pkl'
+######################################################################################################
+######################################## MESSAGES ####################################################
+######################################################################################################
 
-json_dogcat='model.json'
-weights_dogcat='catdog.h5'
+greeting_message='Hello there {} :wave: Glad to meet you! Use !help to get started quickly.'
 
+help_main='''
+Welcome to the help-desk for our Bot - **LUX**, this is a basic guide for you to get started. 
+All the possible commands are highlighted.  use `!command help` to get more information on a particular command. Have Fun :)
 
-############################################# MESSAGES ###################################################################
+  :chart_with_downwards_trend:__** LINEAR REGRESSION  **__:chart_with_upwards_trend:
 
-help_main='''Thanks For using Lux Bot, Here are a list of commands to help you get started! If youd like to learn more about the command use [!command help].\n
-1)!linreg : takes input (x and y and x1) from user and returns the predicted value y1 for x1 and the best fit line.
-2)!dogcat : takes an image as an input and predicts whether the image is of a dog or a cat.
-3)!solve : takes an image as an input which contains a simple mathematical equation and returns the result.
-4)!recommend : takes a name of a movie as an input and returns 3 titles similiar to it.
-5)!personality : describe yourself and based on the input the bot will predict your personality type.
+> `!linreg x ` , `!linreg y` , `!linreg predict` , `!linreg help`
+> 
+> - linear regression is a linear approach for modelling the relationship between a scalar response and one or more explanatory variables.
+> - Our model returns a graph with the best fit line and also makes a prediction for you!
+> - Use the last command to get an example.
+
+  __**:cat2:  DOG CAT CLASSIFICATION  :dog2:**__
+
+> `!dogcat p` , `!dogcat help`
+> 
+> - Using Neural Network, we can classify between 2 images, being dogs and cats. Input an image and let the bot work it's magic! 
+> - Use the second command to get an example. 
+
+  __**:projector: MOVIE RECOMMENDATION  :movie_camera:**__
+
+> `!recommend m` , `!recommend help`
+> 
+> - Have you ever been confused about what movie to watch next, you really liked a movie and want to watch more like these, but google failed you, don't mind that we are here to save you!
+> - Use the second command to get an example.
+
+  __**:person_golfing: PERSONALITY :person_doing_cartwheel:**__
+
+> `!personality p` , `!personality help`
+> 
+> - Use the first command and then write an essay describing yourself and the bot will predict your personality type based on 
+>  the MBTI (Myers-Briggs) Personality Types! 
+> - Use the second command to get an example.
+
+  :angry:__**  INSULT **__:smiling_face_with_3_hearts: 
+
+> `!insult i` , `!insult help`
+> 
+> - Use the first command and then write a short sentence.
+> - Use the second command to get an example.
+
+~~TADA!!!!~~
 '''
 
-help_linreg='''This command trains a Linear Regression Model. How to use it:\n
-1) use !linreg x [integers] to input the x values. For Example !linreg x 1,2,3,4.\n
-2) use !linreg y [integers] to input y values. For Example !linreg y 2,4,6,8. The number of elements must be the exact same as x.\n
-3) use !linreg predict [integer] to get the predicted value for an integer based on the data inserted above.\n
-4) This will now return the predicted value along with the graph for the best fit line and display the score for the model. '''
+help_linreg='''
+> This command trains a Linear Regression Model. How to use it:
 
-help_dogcat='''This command takes input as a link for a jpg image and the classifies whether the image is that of a dog, or a cat.\n
-Some Information about the Model:\n
-An Artificial Neural Netowork was trained on 2000 images (1000 for cat and 1000 for dog)\n->Testing accuracy (on 80-20 split) is 60%.  '''
+1) Use `!linreg x [integers]` to input the x values. For Example `!linreg x 1,2,3,4`.
 
-help_solve=''' ''' 
+2) Use `!linreg y [integers]` to input y values. For Example `!linreg y 2,4,6,8`. The number of elements must be the exact same as x.
 
-help_recommend=''' '''
+3) Use `!linreg predict [integer]` to get the predicted value for an integer based on the data inserted above.
 
-help_personality=''' '''
+4) This will now return the predicted value along with the graph for the best fit line and display the score for the model.
+'''
 
-bot.run(bot_key) 	
+help_dogcat='''
+> This command takes input as a link for a jpg image and the classifies whether the image is that of a dog, or a cat.
+> Some Information about the Model:
+ 
+ 1) Use `!dogcat p [link]` for example `!dogcat p https://post.medicalnewstoday.com/wp-content/uploads/sites/3/2020/02/322868_1100-800x825.jpg` 
+ 
+ 2) An Artificial Neural Netowork was trained on 2000 images (1000 for cat and 1000 for dog) 
+ ->Testing accuracy (on 80-20 split) is 60%.
+'''
+
+help_movie='''
+> This command recommends you 3 movies along with a brief overview.
+ 
+ 1) Use `!recommend m [movie name]` for example `!recommend m cars`.
+ 
+ 2) Cosine similarity was used to find similar titles.
+'''
+
+help_insult='''
+> This command is used to check if a message you sent is an insult or not.
+
+1) You only have to use `!insult i [message]` to check is your message is insulting to other users or not.
+
+2) Make sure you use "i" (lower case i)
+
+3) `!insult i @user you are an idiot`.
+'''
+
+help_personality='''
+> Use this command to enter a paragraph about yourself and get your personality type.
+
+1) Use `!personality p [query]` where query will be the paragraph. An example of a query would be
+
+> Hi I am 21 years, currently, I am pursuing my graduate degree in computer science and management (Mba Tech CS ), It is a 5-year dual degree.... My CGPA to date is 3.8/4.0 . I have a passion for teaching since childhood. Math has always been the subject of my interest in school. Also, my mother has been one of my biggest inspirations for me. She started her career as a teacher and now has her own education trust with preschools schools in Rural and Urban areas. During the period of lockdown, I dwelled in the field of blogging and content creation on Instagram.  to spread love positivity kindness . I hope I am able deliver my best to the platform and my optimistic attitude helps in the growth that is expected. Thank you for the opportunity.
+
+2) This model uses NLP and XGBoost.
+
+'''
+bot.run(bot_key)

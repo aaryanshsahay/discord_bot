@@ -1,7 +1,7 @@
 <h1>About</h1>
 A discord bot which performs various machine learning and deep learning tasks.
 
-List of commands : 
+List of commands : <br>
 ![image](https://user-images.githubusercontent.com/53135035/148861784-43f07494-4a49-4288-bd50-a7edb5709a5b.png)
 
 <h2>Linear Regression</h2>
